@@ -28,7 +28,6 @@ export async function getServerSideProps({ params }) {
   };
 }
 
-// Tela de carregamento enquanto processa
 function TelaCarregando({ nome }) {
   const [dot, setDot] = useState(0);
   useEffect(() => {
@@ -43,11 +42,11 @@ function TelaCarregando({ nome }) {
         {nome ? `Gerando sua foto, ${nome.split(' ')[0]}` : 'Gerando sua foto'}{'...'.slice(0, dot + 1)}
       </h2>
       <p className={s.loadingSub}>
-        Nossa IA está aprendendo seu rosto com Flux.1.<br />
+        Nossa IA está processando seu rosto.<br />
         Isso leva menos de 1 minuto. Aguarde nesta página.
       </p>
       <div className={s.loadingSteps}>
-        {['Analisando suas fotos', 'Treinando modelo Flux.1', 'Gerando headshot grátis'].map((step, i) => (
+        {['Analisando sua foto', 'Processando com IA', 'Gerando headshot grátis'].map((step, i) => (
           <div key={step} className={s.loadingStep}>
             <span className={s.loadingDot} style={{ animationDelay: `${i * 0.4}s` }} />
             {step}
@@ -58,14 +57,12 @@ function TelaCarregando({ nome }) {
   );
 }
 
-// QR Code PIX
 function CheckoutPix({ pedidoId, onPago }) {
   const [dados, setDados] = useState(null);
   const [copiado, setCopiado] = useState(false);
   const [verificando, setVerificando] = useState(false);
 
   useEffect(() => {
-    // Cria ou busca cobrança PIX
     fetch('/api/pagar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -78,7 +75,6 @@ function CheckoutPix({ pedidoId, onPago }) {
 
   useEffect(() => {
     if (!dados) return;
-    // Polling para verificar pagamento a cada 5 segundos
     const interval = setInterval(async () => {
       setVerificando(true);
       const r = await fetch(`/api/status?id=${pedidoId}`);
@@ -90,7 +86,7 @@ function CheckoutPix({ pedidoId, onPago }) {
   }, [dados, pedidoId, onPago]);
 
   const copiar = () => {
-    navigator.clipboard.writeText(dados.brCode);
+    navigator.clipboard.writeText(dados.pixCopiaECola);
     setCopiado(true);
     setTimeout(() => setCopiado(false), 3000);
   };
@@ -109,10 +105,10 @@ function CheckoutPix({ pedidoId, onPago }) {
         </div>
       ) : (
         <>
-          {dados.qrCodeImage && (
+          {dados.qrcodeBase64 && (
             <div className={s.qrWrapper}>
               <img
-                src={`data:image/png;base64,${dados.qrCodeImage}`}
+                src={dados.qrcodeBase64}
                 alt="QR Code PIX"
                 className={s.qrImg}
               />
@@ -127,7 +123,7 @@ function CheckoutPix({ pedidoId, onPago }) {
           <div className={s.pixCopiaCola}>
             <p className={s.pixLabel}>Ou use o código Pix Copia e Cola:</p>
             <div className={s.pixCode}>
-              <span className={s.pixCodeText}>{dados.brCode?.slice(0, 50)}...</span>
+              <span className={s.pixCodeText}>{dados.pixCopiaECola?.slice(0, 50)}...</span>
               <button className={s.pixCopiarBtn} onClick={copiar}>
                 {copiado ? '✓ Copiado!' : 'Copiar'}
               </button>
@@ -149,7 +145,6 @@ export default function Resultado({ pedido: pedidoInicial }) {
   const [pedido, setPedido] = useState(pedidoInicial);
   const [foiPago, setFoiPago] = useState(pedidoInicial.pixPago);
 
-  // Polling para detectar quando a foto grátis fica pronta
   useEffect(() => {
     if (pedido.status === 'foto_gratis_pronta' || pedido.status === 'pronto') return;
 
@@ -157,7 +152,7 @@ export default function Resultado({ pedido: pedidoInicial }) {
       const r = await fetch(`/api/status?id=${pedido.id}`);
       const d = await r.json();
       if (d.fotoGratisPronta || d.status === 'foto_gratis_pronta' || d.status === 'pronto') {
-        window.location.reload(); // recarrega para pegar SSR com foto pronta
+        window.location.reload();
       }
     }, 3000);
     return () => clearInterval(interval);
@@ -193,14 +188,13 @@ export default function Resultado({ pedido: pedidoInicial }) {
           </div>
         ) : (
           <div className={s.layout}>
-            {/* Coluna esquerda — foto grátis */}
             <div className={s.fotoGratisSide}>
               <div className={s.fotoGratisHeader}>
                 <span className={s.tagGratis}>✓ Grátis</span>
                 <h2 className={s.fotoGratisTitulo}>
                   {pedido.nome ? `Olá, ${pedido.nome.split(' ')[0]}!` : 'Sua foto profissional'}
                 </h2>
-                <p className={s.fotoGratisSub}>Aqui está seu headshot gerado com Flux.1 AI</p>
+                <p className={s.fotoGratisSub}>Aqui está seu headshot gerado por IA</p>
               </div>
 
               {pedido.fotoGratis ? (
@@ -221,7 +215,6 @@ export default function Resultado({ pedido: pedidoInicial }) {
               )}
             </div>
 
-            {/* Coluna direita — 9 bloqueadas + PIX */}
             <div className={s.fotosLockedSide}>
               <div className={s.lockedHeader}>
                 <h3 className={s.lockedTitulo}>
@@ -234,7 +227,6 @@ export default function Resultado({ pedido: pedidoInicial }) {
                 </p>
               </div>
 
-              {/* Grid 3x3 das fotos desbloqueadas OU bloqueadas */}
               <div className={s.fotosGrid}>
                 {todasProntas && pedido.fotosPagas.length > 0
                   ? pedido.fotosPagas.map((url, i) => (
@@ -253,7 +245,6 @@ export default function Resultado({ pedido: pedidoInicial }) {
                 }
               </div>
 
-              {/* Checkout PIX ou botão de download */}
               {todasProntas ? (
                 <a href={`/download/${pedido.id}`} className="btn btn-gold" style={{ width: '100%', padding: '18px', fontSize: '16px', borderRadius: '12px', marginTop: '20px' }}>
                   Ver e baixar todas as 10 fotos →
