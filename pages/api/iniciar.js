@@ -1,7 +1,10 @@
 // api/iniciar.js — Recebe 1 foto, salva no banco e dispara InstantID
 import { supabaseAdmin } from '../../utils/supabase';
 import { uploadParaR2 } from '../../utils/storage';
-import { iniciarGeracaoGratis } from '../../utils/ia';
+console.log('[iniciar] urlFrente:', urlFrente);
+console.log('[iniciar] genero:', genero);
+const requestId = await iniciarGeracaoGratis(urlFrente, pedidoId, genero);
+console.log('[iniciar] requestId:', requestId);
 
 export const config = { api: { bodyParser: false } };
 

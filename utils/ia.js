@@ -31,7 +31,7 @@ const PROMPTS = {
 const NEG = 'ugly, distorted, deformed, blurry, bad anatomy, extra limbs, watermark, text, low quality, nsfw';
 
 const inputInstantID = (fotoUrl, prompt) => ({
-  face_image_url: fotoUrl,
+  image_url: fotoUrl,
   prompt,
   negative_prompt: NEG,
   num_inference_steps: 30,
