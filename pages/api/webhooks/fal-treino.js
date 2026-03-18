@@ -1,4 +1,4 @@
-// Webhook fal.ai — InstantID concluído → salva foto grátis
+// Webhook fal.ai — concluído → salva foto grátis
 import { supabaseAdmin } from '../../../utils/supabase';
 import { baixarEsalvarNoR2 } from '../../../utils/storage';
 
@@ -7,6 +7,8 @@ export default async function handler(req, res) {
 
   const { pedidoId } = req.query;
   const payload = req.body;
+
+  console.log('[fal-webhook] payload completo:', JSON.stringify(payload));
 
   if (payload.status === 'ERROR') {
     console.error('[fal-webhook] erro:', payload.error);
@@ -19,11 +21,9 @@ export default async function handler(req, res) {
   if (payload.status !== 'OK') return res.json({ ok: true });
 
   try {
-    // InstantID retorna images[0].url diretamente
-    const urlFal = payload.output?.image?.url || payload.output?.images?.[0]?.url;
+    const urlFal = payload.output?.images?.[0]?.url || payload.output?.image?.url;
     if (!urlFal) throw new Error('URL da imagem ausente: ' + JSON.stringify(payload.output));
 
-    // Salva no R2
     const urlFinal = await baixarEsalvarNoR2(urlFal, `pedidos/${pedidoId}/foto_gratis.jpg`);
 
     await supabaseAdmin.from('pedidos').update({
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       status: 'foto_gratis_pronta',
     }).eq('id', pedidoId);
 
-    console.log(`[fal-webhook] foto grátis gerada para ${pedidoId}`);
+    console.log('[fal-webhook] foto grátis gerada para', pedidoId);
 
   } catch (err) {
     console.error('[fal-webhook]', err);
@@ -40,5 +40,5 @@ export default async function handler(req, res) {
     }).eq('id', pedidoId);
   }
 
-  res.json({ ok: true });
+  return res.json({ ok: true });
 }
