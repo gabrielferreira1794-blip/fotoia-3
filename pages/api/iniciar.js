@@ -1,10 +1,7 @@
 // api/iniciar.js — Recebe 1 foto, salva no banco e dispara InstantID
 import { supabaseAdmin } from '../../utils/supabase';
 import { uploadParaR2 } from '../../utils/storage';
-console.log('[iniciar] urlFrente:', urlFrente);
-console.log('[iniciar] genero:', genero);
-const requestId = await iniciarGeracaoGratis(urlFrente, pedidoId, genero);
-console.log('[iniciar] requestId:', requestId);
+import { iniciarGeracaoGratis } from '../../utils/ia';
 
 export const config = { api: { bodyParser: false } };
 
@@ -35,18 +32,18 @@ export default async function handler(req, res) {
     const fs = await import('fs');
     const bufFrente = fs.readFileSync(fFrente.filepath);
 
-    // Upload da foto para o R2
     const urlFrente = await uploadParaR2(bufFrente, `pedidos/${pedidoId}/frente.jpg`);
+    console.log('[iniciar] urlFrente:', urlFrente);
+    console.log('[iniciar] genero:', genero);
 
-    // Cria pedido no banco
     await supabaseAdmin.from('pedidos').insert({
       id: pedidoId, email, nome, whatsapp, genero,
       foto_frente: urlFrente,
       status: 'processando',
     });
 
-    // Dispara InstantID — webhook avisa quando terminar (~30-60s)
     const requestId = await iniciarGeracaoGratis(urlFrente, pedidoId, genero);
+    console.log('[iniciar] requestId:', requestId);
 
     await supabaseAdmin.from('pedidos')
       .update({ fal_request_id: requestId })
