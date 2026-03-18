@@ -84,7 +84,7 @@ export const gerarFotosPagas = async (loraUrl, genero = 'feminino') => {
  * Retorna request_id para acompanhar via webhook
  */
 export const iniciarTreino = async (zipDataUrl, pedidoId) => {
-  const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}`;
+ const webhookUrl = `${process.env.WEBHOOK_BASE_URL || process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}`;
 
   const { request_id } = await fal.queue.submit('fal-ai/flux-lora-fast-training', {
     input: {
