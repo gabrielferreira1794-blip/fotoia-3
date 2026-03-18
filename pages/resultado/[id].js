@@ -44,7 +44,7 @@ function TelaCarregando({ nome }) {
       </h2>
       <p className={s.loadingSub}>
         Nossa IA está aprendendo seu rosto com Flux.1.<br />
-        Isso leva entre 10 e 20 minutos. Pode fechar esta aba — você receberá um email.
+        Isso leva menos de 1 minuto. Aguarde nesta página.
       </p>
       <div className={s.loadingSteps}>
         {['Analisando suas fotos', 'Treinando modelo Flux.1', 'Gerando headshot grátis'].map((step, i) => (
@@ -159,7 +159,7 @@ export default function Resultado({ pedido: pedidoInicial }) {
       if (d.fotoGratisPronta || d.status === 'foto_gratis_pronta' || d.status === 'pronto') {
         window.location.reload(); // recarrega para pegar SSR com foto pronta
       }
-    }, 10000);
+    }, 3000);
     return () => clearInterval(interval);
   }, [pedido]);
 

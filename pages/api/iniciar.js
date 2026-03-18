@@ -1,7 +1,7 @@
-// api/iniciar.js — Recebe as 3 fotos, inicia treino, salva no banco
+// api/iniciar.js — Recebe 1 foto, salva no banco e dispara InstantID
 import { supabaseAdmin } from '../../utils/supabase';
 import { uploadParaR2 } from '../../utils/storage';
-import { iniciarTreino, criarZipRosto } from '../../utils/ia';
+import { iniciarGeracaoGratis } from '../../utils/ia';
 
 export const config = { api: { bodyParser: false } };
 
@@ -17,50 +17,33 @@ export default async function handler(req, res) {
     });
 
     const get = (k) => Array.isArray(fields[k]) ? fields[k][0] : fields[k];
-    const email = get('email');
-    const nome = get('nome');
+    const email    = get('email');
+    const nome     = get('nome');
     const whatsapp = get('whatsapp') || null;
-    const genero = get('genero') || 'feminino';
+    const genero   = get('genero') || 'feminino';
 
     if (!email || !nome) return res.status(400).json({ erro: 'Nome e email obrigatórios' });
 
-    const getFile = (k) => {
-      const f = files[k];
-      return Array.isArray(f) ? f[0] : f;
-    };
+    const getFile = (k) => { const f = files[k]; return Array.isArray(f) ? f[0] : f; };
     const fFrente = getFile('frente');
-    const fEsquerda = getFile('esquerda');
-    const fDireita = getFile('direita');
-    if (!fFrente || !fEsquerda || !fDireita) {
-      return res.status(400).json({ erro: 'Envie as 3 fotos do rosto' });
-    }
+    if (!fFrente) return res.status(400).json({ erro: 'Envie sua foto' });
 
     const pedidoId = crypto.randomUUID();
     const fs = await import('fs');
-
-    // Upload das 3 fotos para o R2
     const bufFrente = fs.readFileSync(fFrente.filepath);
-    const bufEsquerda = fs.readFileSync(fEsquerda.filepath);
-    const bufDireita = fs.readFileSync(fDireita.filepath);
 
-    const [urlFrente, urlEsquerda, urlDireita] = await Promise.all([
-      uploadParaR2(bufFrente, `pedidos/${pedidoId}/frente.jpg`),
-      uploadParaR2(bufEsquerda, `pedidos/${pedidoId}/esquerda.jpg`),
-      uploadParaR2(bufDireita, `pedidos/${pedidoId}/direita.jpg`),
-    ]);
+    // Upload da foto para o R2
+    const urlFrente = await uploadParaR2(bufFrente, `pedidos/${pedidoId}/frente.jpg`);
 
     // Cria pedido no banco
     await supabaseAdmin.from('pedidos').insert({
       id: pedidoId, email, nome, whatsapp, genero,
       foto_frente: urlFrente,
-      foto_esquerda: urlEsquerda,
-      foto_direita: urlDireita,
       status: 'processando',
     });
 
-    // Cria ZIP das 3 fotos e inicia treino
-    const zipDataUrl = await criarZipRosto(bufFrente, bufEsquerda, bufDireita);
-    const requestId = await iniciarTreino(zipDataUrl, pedidoId);
+    // Dispara InstantID — webhook avisa quando terminar (~30-60s)
+    const requestId = await iniciarGeracaoGratis(urlFrente, pedidoId, genero);
 
     await supabaseAdmin.from('pedidos')
       .update({ fal_request_id: requestId })

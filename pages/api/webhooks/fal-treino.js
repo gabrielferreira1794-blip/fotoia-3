@@ -1,6 +1,5 @@
-// Webhook fal.ai — treino concluído → gera 1 foto grátis
+// Webhook fal.ai — InstantID concluído → salva foto grátis
 import { supabaseAdmin } from '../../../utils/supabase';
-import { gerarFotoGratis } from '../../../utils/ia';
 import { baixarEsalvarNoR2 } from '../../../utils/storage';
 
 export default async function handler(req, res) {
@@ -10,23 +9,21 @@ export default async function handler(req, res) {
   const payload = req.body;
 
   if (payload.status === 'ERROR') {
+    console.error('[fal-webhook] erro:', payload.error);
     await supabaseAdmin.from('pedidos').update({
       status: 'erro', erro_msg: JSON.stringify(payload.error),
     }).eq('id', pedidoId);
     return res.json({ ok: false });
   }
+
   if (payload.status !== 'OK') return res.json({ ok: true });
 
   try {
-    const loraUrl = payload.output?.diffusers_lora_file?.url || payload.output?.lora_file?.url;
-    if (!loraUrl) throw new Error('LoRA URL ausente: ' + JSON.stringify(payload.output));
+    // InstantID retorna images[0].url diretamente
+    const urlFal = payload.output?.images?.[0]?.url;
+    if (!urlFal) throw new Error('URL da imagem ausente: ' + JSON.stringify(payload.output));
 
-    // Salva modelo e busca gênero do pedido
-    await supabaseAdmin.from('pedidos').update({ lora_url: loraUrl, status: 'gerando_foto_gratis' }).eq('id', pedidoId);
-    const { data: pedido } = await supabaseAdmin.from('pedidos').select('genero').eq('id', pedidoId).single();
-
-    // Gera a 1 foto grátis
-    const urlFal = await gerarFotoGratis(loraUrl, pedido?.genero || 'feminino');
+    // Salva no R2
     const urlFinal = await baixarEsalvarNoR2(urlFal, `pedidos/${pedidoId}/foto_gratis.jpg`);
 
     await supabaseAdmin.from('pedidos').update({
@@ -34,11 +31,13 @@ export default async function handler(req, res) {
       status: 'foto_gratis_pronta',
     }).eq('id', pedidoId);
 
-    console.log(`[fal-treino] Foto grátis gerada para ${pedidoId}`);
+    console.log(`[fal-webhook] foto grátis gerada para ${pedidoId}`);
 
   } catch (err) {
-    console.error('[fal-treino]', err);
-    await supabaseAdmin.from('pedidos').update({ status: 'erro', erro_msg: err.message }).eq('id', pedidoId);
+    console.error('[fal-webhook]', err);
+    await supabaseAdmin.from('pedidos').update({
+      status: 'erro', erro_msg: err.message,
+    }).eq('id', pedidoId);
   }
 
   res.json({ ok: true });
