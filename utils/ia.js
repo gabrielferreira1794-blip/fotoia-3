@@ -31,13 +31,11 @@ const PROMPTS = {
 const NEG = 'ugly, distorted, deformed, blurry, bad anatomy, extra limbs, watermark, text, low quality, nsfw';
 
 const inputInstantID = (fotoUrl, prompt) => ({
-  image_url: fotoUrl,
+  face_image_url: fotoUrl,
   prompt,
   negative_prompt: NEG,
   num_inference_steps: 30,
   guidance_scale: 5,
-  enhance_face_region: true,
-  enable_lcm: false,
 });
 
 // Dispara geração da foto grátis via queue + webhook (~30-60s)
