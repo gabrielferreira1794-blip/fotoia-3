@@ -1,0 +1,8 @@
+Coloque aqui fotos reais de antes/depois para exibir na landing page.
+
+Nomes esperados pelo código:
+  antes1.jpg, depois1.jpg  — Exemplo 1
+  antes2.jpg, depois2.jpg  — Exemplo 2
+  antes3.jpg, depois3.jpg  — Exemplo 3
+
+Dica: use fotos geradas pelo próprio sistema depois dos primeiros clientes.

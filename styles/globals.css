@@ -1,0 +1,93 @@
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d0d;
+  --surface: #161616;
+  --border: rgba(255,255,255,0.08);
+  --white: #ffffff;
+  --off-white: #e8e4de;
+  --gold: #d4a843;
+  --gold-muted: rgba(212,168,67,0.15);
+  --gray: #888;
+  --gray-light: #555;
+  --red: #ff4d4d;
+  --green: #22c55e;
+  --radius: 16px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1,h2,h3,h4 { font-family: 'Sora', sans-serif; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 100px;
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+.btn-gold {
+  background: var(--gold);
+  color: #000;
+  padding: 16px 36px;
+  font-size: 15px;
+}
+.btn-gold:hover { background: #e8bc50; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,168,67,0.3); }
+.btn-gold:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--white);
+  padding: 14px 28px;
+  font-size: 14px;
+}
+.btn-outline:hover { border-color: rgba(255,255,255,0.3); }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+.section { padding: 80px 0; }
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(20px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.fade-up { animation: fadeUp .5s ease both; }
+.fade-up-1 { animation: fadeUp .5s .1s ease both; }
+.fade-up-2 { animation: fadeUp .5s .2s ease both; }
+.fade-up-3 { animation: fadeUp .5s .3s ease both; }
+.fade-up-4 { animation: fadeUp .5s .4s ease both; }
+
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(0,0,0,0.2);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: inline-block; flex-shrink: 0;
+}
+.spinner-gold {
+  border-color: rgba(212,168,67,0.2);
+  border-top-color: var(--gold);
+}

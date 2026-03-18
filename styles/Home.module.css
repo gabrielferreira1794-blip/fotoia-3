@@ -1,0 +1,263 @@
+/* NAV */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 16px 0;
+  background: rgba(13,13,13,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.logo { font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 800; color: var(--gold); }
+.navLink { font-size: 14px; color: var(--gray); text-decoration: none; transition: color .2s; }
+.navLink:hover { color: var(--white); }
+
+/* HERO */
+.hero {
+  position: relative; overflow: hidden;
+  padding: 160px 0 100px; text-align: center;
+}
+.heroBg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(212,168,67,0.14) 0%, transparent 70%);
+  pointer-events: none;
+}
+.badge {
+  display: inline-block;
+  background: rgba(212,168,67,0.1);
+  border: 1px solid rgba(212,168,67,0.25);
+  color: var(--gold);
+  padding: 6px 18px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-family: 'Sora', sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+.heroContent { max-width: 800px; margin: 0 auto; }
+.heroTitle {
+  font-size: clamp(40px, 7vw, 80px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -.02em;
+  margin-bottom: 20px;
+}
+.heroHighlight {
+  background: linear-gradient(135deg, var(--gold) 0%, #f0c060 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.heroSub {
+  font-size: 18px;
+  color: var(--gray);
+  line-height: 1.7;
+  margin-bottom: 32px;
+}
+.heroSub strong { color: var(--off-white); }
+.heroPills { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.pill {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  padding: 7px 16px;
+  border-radius: 100px;
+  font-size: 13px;
+  color: var(--off-white);
+}
+
+/* EXEMPLOS */
+.exemplos { padding: 80px 0; border-top: 1px solid var(--border); }
+.sectionTitle {
+  font-size: clamp(24px, 4vw, 40px);
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 48px;
+}
+.exemplosGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 20px; }
+.exemploCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.exemploImgs { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.exemploImg { position: relative; flex: 1; }
+.exemploLabel {
+  position: absolute; top: 8px; left: 8px; z-index: 1;
+  background: rgba(0,0,0,0.7); color: #aaa;
+  padding: 3px 10px; border-radius: 100px; font-size: 11px;
+}
+.labelDepois { color: var(--gold); }
+.imgPlaceholder {
+  aspect-ratio: 3/4; border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px;
+}
+.imgGerada { background: rgba(212,168,67,0.06); }
+.exemploArrow { color: var(--gray-light); font-size: 20px; flex-shrink: 0; }
+.exemploCaption { font-size: 13px; color: var(--gray); text-align: center; }
+
+/* FORM */
+.formSection { padding: 60px 0 100px; }
+.formCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 48px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+.formTitle { font-size: 30px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+.formSub { text-align: center; color: var(--gray); font-size: 14px; margin-bottom: 32px; }
+
+.generoToggle { display: flex; gap: 8px; margin-bottom: 28px; }
+.generoBtn {
+  flex: 1; padding: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--gray);
+  font-family: 'Sora', sans-serif;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+}
+.generoBtnAtivo {
+  background: var(--gold-muted);
+  border-color: rgba(212,168,67,0.4);
+  color: var(--gold);
+}
+
+.fotosLabel {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+  font-size: 14px; font-weight: 500;
+}
+.fotosHint { font-size: 12px; color: var(--gray); }
+
+.fotosGrid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
+.fotoSlot {
+  position: relative;
+  aspect-ratio: 3/4;
+  background: rgba(255,255,255,0.02);
+  border: 1.5px dashed rgba(255,255,255,0.12);
+  border-radius: 12px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 6px; cursor: pointer;
+  transition: all .2s; overflow: hidden;
+  text-align: center; padding: 12px;
+}
+.fotoSlot:hover { border-color: rgba(212,168,67,0.4); background: var(--gold-muted); }
+.fotoPreview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.fotoSlotOverlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  opacity: 0; transition: opacity .2s;
+}
+.fotoSlot:hover .fotoSlotOverlay { opacity: 1; }
+.fotoSlotCheck { font-size: 24px; color: var(--gold); }
+.fotoSlotTrocar { font-size: 12px; color: var(--white); }
+.fotoSlotIcon { font-size: 28px; }
+.fotoSlotLabel { font-size: 12px; font-weight: 600; font-family: 'Sora', sans-serif; }
+.fotoSlotDesc { font-size: 10px; color: var(--gray); line-height: 1.4; }
+.fotoSlotBtn {
+  font-size: 11px; color: var(--gold);
+  background: var(--gold-muted);
+  padding: 4px 12px; border-radius: 100px;
+  margin-top: 2px;
+}
+
+.campos { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+.campoRow { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.campo label { font-size: 13px; color: var(--gray); }
+.req { color: var(--gold); }
+.opt { font-size: 11px; color: var(--gray-light); }
+.input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 13px 16px;
+  font-size: 15px; color: var(--white);
+  font-family: 'Inter', sans-serif;
+  transition: border-color .2s;
+  width: 100%;
+}
+.input:focus { outline: none; border-color: rgba(212,168,67,0.5); }
+.input::placeholder { color: var(--gray-light); }
+
+.erro {
+  background: rgba(255,77,77,0.1);
+  border: 1px solid rgba(255,77,77,0.25);
+  color: #ff8080;
+  padding: 12px 16px; border-radius: 10px;
+  font-size: 14px; margin-bottom: 16px;
+}
+.btnEnviar { width: 100%; padding: 18px; font-size: 16px; border-radius: 12px; }
+.formNote { text-align: center; font-size: 12px; color: var(--gray-light); margin-top: 14px; }
+
+/* COMO FUNCIONA */
+.comoFunciona { border-top: 1px solid var(--border); }
+.passos { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 24px; }
+.passo {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+}
+.passoNum {
+  font-family: 'Sora', sans-serif;
+  font-size: 40px; font-weight: 800;
+  color: rgba(212,168,67,0.2);
+  margin-bottom: 12px; line-height: 1;
+}
+.passoTitulo { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.passodesc { font-size: 14px; color: var(--gray); line-height: 1.6; }
+
+/* DEPOIMENTOS */
+.depoimentos { border-top: 1px solid var(--border); }
+.depoimentosGrid { display: grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap: 20px; }
+.depoimento {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+}
+.depoimentoStars { color: var(--gold); font-size: 14px; margin-bottom: 14px; }
+.depoimentoTexto { font-size: 14px; color: var(--off-white); line-height: 1.7; margin-bottom: 20px; }
+.depoimentoAutor { display: flex; align-items: center; gap: 12px; }
+.depoimentoAvatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--gold-muted); border: 1px solid rgba(212,168,67,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: var(--gold);
+  font-family: 'Sora', sans-serif;
+}
+.depoimentoNome { font-size: 14px; font-weight: 600; }
+.depoimentoCargo { font-size: 12px; color: var(--gray); }
+
+/* CTA FINAL */
+.ctaFinal {
+  padding: 100px 0;
+  background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(212,168,67,0.08) 0%, transparent 70%);
+  border-top: 1px solid var(--border);
+}
+.ctaTitulo { font-size: clamp(28px, 4vw, 48px); font-weight: 800; margin-bottom: 12px; }
+.ctaSub { font-size: 16px; color: var(--gray); margin-bottom: 32px; }
+
+/* FOOTER */
+.footer {
+  padding: 32px 0;
+  border-top: 1px solid var(--border);
+  color: var(--gray-light);
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .formCard { padding: 24px 20px; }
+  .campoRow { grid-template-columns: 1fr; }
+  .fotosGrid { gap: 8px; }
+  .passos { grid-template-columns: 1fr 1fr; }
+}

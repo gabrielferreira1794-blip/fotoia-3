@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "pages/api/iniciar.js": { "maxDuration": 60 },
+    "pages/api/webhooks/fal-treino.js": { "maxDuration": 120 },
+    "pages/api/webhooks/pix.js": { "maxDuration": 300 },
+    "pages/api/webhooks/fal-geracao.js": { "maxDuration": 300 }
+  }
+}
