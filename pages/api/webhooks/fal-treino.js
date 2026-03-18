@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
   try {
     // InstantID retorna images[0].url diretamente
-    const urlFal = payload.output?.images?.[0]?.url;
+    const urlFal = payload.output?.image?.url || payload.output?.images?.[0]?.url;
     if (!urlFal) throw new Error('URL da imagem ausente: ' + JSON.stringify(payload.output));
 
     // Salva no R2

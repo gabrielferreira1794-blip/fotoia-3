@@ -30,20 +30,23 @@ const PROMPTS = {
 
 const NEG = 'ugly, distorted, deformed, blurry, bad anatomy, extra limbs, watermark, text, low quality, nsfw';
 
-// Dispara geração da foto grátis via queue + webhook (~30-60 segundos)
+const inputInstantID = (fotoUrl, prompt) => ({
+  face_image_url: fotoUrl,
+  prompt,
+  negative_prompt: NEG,
+  num_inference_steps: 30,
+  guidance_scale: 5,
+  enhance_face_region: true,
+  enable_lcm: false,
+});
+
+// Dispara geração da foto grátis via queue + webhook (~30-60s)
 export const iniciarGeracaoGratis = async (fotoUrl, pedidoId, genero = 'feminino') => {
   const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}`;
   const prompt = PROMPTS[genero]?.[0] || PROMPTS.feminino[0];
 
   const { request_id } = await fal.queue.submit('fal-ai/instantid', {
-    input: {
-      face_image_url: fotoUrl,
-      prompt,
-      negative_prompt: NEG,
-      num_inference_steps: 30,
-      guidance_scale: 5,
-      image_size: 'portrait_4_3',
-    },
+    input: inputInstantID(fotoUrl, prompt),
     webhookUrl,
   });
 
@@ -57,16 +60,10 @@ export const gerarFotosPagas = async (fotoUrl, genero = 'feminino') => {
   return Promise.all(
     prompts.map(async (prompt) => {
       const result = await fal.run('fal-ai/instantid', {
-        input: {
-          face_image_url: fotoUrl,
-          prompt,
-          negative_prompt: NEG,
-          num_inference_steps: 30,
-          guidance_scale: 5,
-          image_size: 'portrait_4_3',
-        },
+        input: inputInstantID(fotoUrl, prompt),
       });
-      return result.images[0].url;
+      // InstantID retorna "image" (singular), não "images"
+      return result.image?.url || result.images?.[0]?.url;
     })
   );
 };
