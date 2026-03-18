@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   if (payload.status !== 'OK') return res.json({ ok: true });
 
   try {
-    const urlFal = payload.output?.images?.[0]?.url || payload.output?.image?.url;
+    const urlFal = payload.payload?.images?.[0]?.url || payload.output?.images?.[0]?.url || payload.output?.image?.url;
     if (!urlFal) throw new Error('URL da imagem ausente: ' + JSON.stringify(payload.output));
 
     const urlFinal = await baixarEsalvarNoR2(urlFal, `pedidos/${pedidoId}/foto_gratis.jpg`);
