@@ -1,3 +1,6 @@
+
+Copiar
+
 // utils/ia.js — Flux.1 LoRA via fal.ai (melhor qualidade para headshots)
 import { fal } from '@fal-ai/client';
  
@@ -31,6 +34,7 @@ const PROMPTS = {
 // Gera 1 foto grátis após treino concluído
 export const gerarFotoGratis = async (loraUrl, genero = 'feminino') => {
   const prompt = PROMPTS[genero]?.[0] || PROMPTS.feminino[0];
+ 
   const result = await fal.run('fal-ai/flux-lora', {
     input: {
       prompt,
@@ -43,12 +47,14 @@ export const gerarFotoGratis = async (loraUrl, genero = 'feminino') => {
       output_format: 'jpeg',
     },
   });
+ 
   return result.images[0].url;
 };
  
 // Gera as 9 fotos pagas em paralelo (após PIX confirmado)
 export const gerarFotosPagas = async (loraUrl, genero = 'feminino') => {
   const prompts = (PROMPTS[genero] || PROMPTS.feminino).slice(1);
+ 
   return Promise.all(
     prompts.map(async (prompt) => {
       const result = await fal.run('fal-ai/flux-lora', {
@@ -71,16 +77,16 @@ export const gerarFotosPagas = async (loraUrl, genero = 'feminino') => {
 // Inicia treino LoRA — webhook avisa quando terminar (~10-15 min)
 export const iniciarTreino = async (zipDataUrl, pedidoId) => {
   const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}`;
+ 
   const { request_id } = await fal.queue.submit('fal-ai/flux-lora-fast-training', {
     input: {
       images_data_url: zipDataUrl,
       trigger_word: 'FOTOPESSOA',
       steps: 1000,
-      learning_rate: 0.0004,
-      multiresolution_training: true,
     },
     webhookUrl,
   });
+ 
   return request_id;
 };
  
@@ -88,10 +94,11 @@ export const iniciarTreino = async (zipDataUrl, pedidoId) => {
 export const criarZipRosto = async (bufferFrente, bufferEsquerda, bufferDireita) => {
   const JSZip = (await import('jszip')).default;
   const zip = new JSZip();
+ 
   zip.file('rosto_frente.jpg', bufferFrente);
   zip.file('rosto_esquerda.jpg', bufferEsquerda);
   zip.file('rosto_direita.jpg', bufferDireita);
+ 
   const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
   return `data:application/zip;base64,${zipBuffer.toString('base64')}`;
 };
- 
