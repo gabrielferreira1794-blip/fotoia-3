@@ -1,6 +1,3 @@
-
-Copiar
-
 // utils/ia.js — Flux.1 LoRA via fal.ai (melhor qualidade para headshots)
 import { fal } from '@fal-ai/client';
  
