@@ -49,8 +49,8 @@ export default async function handler(req, res) {
  
     console.log('[fal-treino] foto grátis gerada para', pedidoId);
  
-  } catch (err) {
-    console.error('[fal-treino] erro:', err);
+ } catch (err) {
+  console.error('[fal-treino] erro completo:', JSON.stringify(err?.body || err?.message || err));
     await supabaseAdmin.from('pedidos').update({
       status: 'erro', erro_msg: err.message,
     }).eq('id', pedidoId);
