@@ -1,67 +1,97 @@
-// utils/ia.js — instant-character via fal.ai (~30-60 segundos, sem treino)
+// utils/ia.js — Flux.1 LoRA via fal.ai (melhor qualidade para headshots)
 import { fal } from '@fal-ai/client';
-
+ 
 fal.config({ credentials: process.env.FAL_KEY });
-
+ 
 const PROMPTS = {
   feminino: [
-    'professional headshot photo of a woman, studio lighting, clean white background, sharp focus, natural makeup, 8k ultra realistic photography',
-    'portrait of a woman, warm natural light, outdoor cafe bokeh background, lifestyle photography, soft smile',
-    'woman in elegant formal blazer, confident professional pose, corporate gradient background, business portrait',
-    'close-up portrait of a woman, golden hour sunlight, cinematic color grading, editorial photography',
-    'woman smiling naturally, modern city street background, candid documentary style, vibrant colors',
-    'woman in business casual outfit, contemporary office building, bright and airy photography',
-    'dramatic portrait of a woman, rembrandt lighting, dark studio background, high fashion editorial',
-    'woman in outdoor park greenery, relaxed happy expression, lifestyle photography, warm tones',
-    'fashion editorial portrait of a woman, plain cream background, minimal style, high-end magazine',
+    'professional headshot of FOTOPESSOA, studio lighting, clean white background, sharp focus, 8k ultra realistic photography',
+    'portrait of FOTOPESSOA, warm natural light, outdoor cafe bokeh background, lifestyle photography',
+    'FOTOPESSOA elegant formal blazer, confident professional pose, corporate gradient background',
+    'close-up portrait of FOTOPESSOA, golden hour sunlight, cinematic color grading, editorial style',
+    'FOTOPESSOA smiling naturally, modern city street background, candid documentary style, vibrant',
+    'FOTOPESSOA business casual outfit, contemporary glass office building, bright and airy',
+    'dramatic portrait of FOTOPESSOA, rembrandt lighting, dark studio background, high fashion editorial',
+    'FOTOPESSOA outdoor park greenery, relaxed happy expression, lifestyle photography, warm tones',
+    'fashion editorial portrait of FOTOPESSOA, plain cream background, minimal style, high-end magazine',
   ],
   masculino: [
-    'professional headshot photo of a man, studio lighting, clean white background, sharp focus, 8k ultra realistic photography',
-    'portrait of a man, warm natural light, outdoor cafe bokeh background, lifestyle photography',
-    'man in formal suit and tie, confident professional pose, corporate gradient background, business portrait',
-    'close-up portrait of a man, golden hour sunlight, cinematic color grading, editorial photography',
-    'man smiling naturally, modern city street background, candid documentary style, vibrant colors',
-    'man in business casual outfit, contemporary office building, bright and airy photography',
-    'dramatic portrait of a man, rembrandt studio lighting, dark background, editorial photography',
-    'man in outdoor park greenery, relaxed confident pose, lifestyle photography, warm tones',
-    'editorial portrait of a man, plain cream background, minimal clean style, high-end magazine',
+    'professional headshot of FOTOPESSOA, studio lighting, clean white background, sharp focus, 8k ultra realistic photography',
+    'portrait of FOTOPESSOA, warm natural light, outdoor cafe bokeh background, lifestyle photography',
+    'FOTOPESSOA formal suit and tie, confident professional pose, corporate gradient background',
+    'close-up portrait of FOTOPESSOA, golden hour sunlight, cinematic color grading, editorial style',
+    'FOTOPESSOA smiling naturally, modern city street background, candid documentary style, vibrant',
+    'FOTOPESSOA business casual, contemporary office setting, bright professional atmosphere',
+    'dramatic portrait of FOTOPESSOA, rembrandt studio lighting, dark background, editorial',
+    'FOTOPESSOA outdoor greenery park, relaxed confident pose, lifestyle photography warm tones',
+    'editorial portrait of FOTOPESSOA, plain cream background, minimal clean style, high-end',
   ],
 };
-
-const makeInput = (fotoUrl, prompt) => ({
-  image_url: fotoUrl,
-  prompt,
-  image_size: 'portrait_4_3',
-  num_inference_steps: 28,
-  guidance_scale: 3.5,
-  num_images: 1,
-  enable_safety_checker: true,
-  output_format: 'jpeg',
-});
-
-// Dispara geração da foto grátis via queue + webhook (~30-60s)
-export const iniciarGeracaoGratis = async (fotoUrl, pedidoId, genero = 'feminino') => {
-  const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}`;
+ 
+// Gera 1 foto grátis após treino concluído
+export const gerarFotoGratis = async (loraUrl, genero = 'feminino') => {
   const prompt = PROMPTS[genero]?.[0] || PROMPTS.feminino[0];
-
-  const { request_id } = await fal.queue.submit('fal-ai/instant-character', {
-    input: makeInput(fotoUrl, prompt),
-    webhookUrl,
+  const result = await fal.run('fal-ai/flux-lora', {
+    input: {
+      prompt,
+      loras: [{ path: loraUrl, scale: 0.88 }],
+      num_inference_steps: 28,
+      guidance_scale: 3.5,
+      image_size: 'portrait_4_3',
+      num_images: 1,
+      enable_safety_checker: true,
+      output_format: 'jpeg',
+    },
   });
-
-  return request_id;
+  return result.images[0].url;
 };
-
+ 
 // Gera as 9 fotos pagas em paralelo (após PIX confirmado)
-export const gerarFotosPagas = async (fotoUrl, genero = 'feminino') => {
+export const gerarFotosPagas = async (loraUrl, genero = 'feminino') => {
   const prompts = (PROMPTS[genero] || PROMPTS.feminino).slice(1);
-
   return Promise.all(
     prompts.map(async (prompt) => {
-      const result = await fal.run('fal-ai/instant-character', {
-        input: makeInput(fotoUrl, prompt),
+      const result = await fal.run('fal-ai/flux-lora', {
+        input: {
+          prompt,
+          loras: [{ path: loraUrl, scale: 0.88 }],
+          num_inference_steps: 28,
+          guidance_scale: 3.5,
+          image_size: 'portrait_4_3',
+          num_images: 1,
+          enable_safety_checker: true,
+          output_format: 'jpeg',
+        },
       });
       return result.images[0].url;
     })
   );
 };
+ 
+// Inicia treino LoRA — webhook avisa quando terminar (~10-15 min)
+export const iniciarTreino = async (zipDataUrl, pedidoId) => {
+  const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}`;
+  const { request_id } = await fal.queue.submit('fal-ai/flux-lora-fast-training', {
+    input: {
+      images_data_url: zipDataUrl,
+      trigger_word: 'FOTOPESSOA',
+      steps: 1000,
+      learning_rate: 0.0004,
+      multiresolution_training: true,
+    },
+    webhookUrl,
+  });
+  return request_id;
+};
+ 
+// Empacota as 3 fotos em ZIP para o treino
+export const criarZipRosto = async (bufferFrente, bufferEsquerda, bufferDireita) => {
+  const JSZip = (await import('jszip')).default;
+  const zip = new JSZip();
+  zip.file('rosto_frente.jpg', bufferFrente);
+  zip.file('rosto_esquerda.jpg', bufferEsquerda);
+  zip.file('rosto_direita.jpg', bufferDireita);
+  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+  return `data:application/zip;base64,${zipBuffer.toString('base64')}`;
+};
+ 
