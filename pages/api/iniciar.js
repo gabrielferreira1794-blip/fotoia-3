@@ -1,7 +1,7 @@
-// api/iniciar.js — Upload 3 fotos, gera prévia USO + treino LoRA em paralelo
+// api/iniciar.js — Upload 3 fotos + inicia treino LoRA
 import { supabaseAdmin } from '../../utils/supabase';
 import { uploadParaR2 } from '../../utils/storage';
-import { iniciarGeracaoGratis, iniciarTreino, criarZipRosto } from '../../utils/ia';
+import { iniciarTreino, criarZipRosto } from '../../utils/ia';
 
 export const config = { api: { bodyParser: false } };
 
@@ -57,19 +57,12 @@ export default async function handler(req, res) {
       status: 'processando',
     });
 
-    // Dispara USO (prévia ~30-60s) E treino LoRA em paralelo via webhooks
+    // Cria ZIP e inicia treino LoRA
     const zipDataUrl = await criarZipRosto(bufFrente, bufEsquerda, bufDireita);
-
-    const [requestIdPrevia] = await Promise.all([
-      iniciarGeracaoGratis(urlFrente, urlEsquerda, urlDireita, pedidoId, genero),
-      iniciarTreino(zipDataUrl, pedidoId).catch(err => {
-        console.error('[iniciar] treino falhou (nao bloqueia):', err.message);
-        return null;
-      }),
-    ]);
+    const requestId  = await iniciarTreino(zipDataUrl, pedidoId);
 
     await supabaseAdmin.from('pedidos')
-      .update({ fal_request_id: requestIdPrevia })
+      .update({ fal_request_id: requestId })
       .eq('id', pedidoId);
 
     return res.status(200).json({ pedidoId });
