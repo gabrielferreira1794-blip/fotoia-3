@@ -1,9 +1,12 @@
-// api/iniciar.js — Upload 3 fotos, gera prévia via PuLID + treino LoRA em paralelo
+// api/iniciar.js — Gera prévia via Gemini + inicia treino LoRA em paralelo
 import { supabaseAdmin } from '../../utils/supabase';
 import { uploadParaR2 } from '../../utils/storage';
-import { iniciarGeracaoGratis, iniciarTreino, criarZipRosto } from '../../utils/ia';
+import { gerarPreviaGemini, iniciarTreino, criarZipRosto } from '../../utils/ia';
 
-export const config = { api: { bodyParser: false } };
+export const config = {
+  api: { bodyParser: false },
+  maxDuration: 60, // 60s para o Gemini gerar
+};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -57,25 +60,39 @@ export default async function handler(req, res) {
       status: 'processando',
     });
 
-    // Dispara PuLID (prévia ~30-60s) E treino LoRA em paralelo
-    const zipDataUrl = await criarZipRosto(bufFrente, bufEsquerda, bufDireita);
+    // Responde imediatamente ao cliente
+    res.status(200).json({ pedidoId });
 
-    const [requestIdPrevia] = await Promise.all([
-      iniciarGeracaoGratis(urlFrente, urlEsquerda, urlDireita, pedidoId, genero),
-      iniciarTreino(zipDataUrl, pedidoId).catch(err => {
-        console.error('[iniciar] treino falhou (nao bloqueia):', err.message);
-        return null;
-      }),
-    ]);
+    // Processa em background (fora do await da response)
+    try {
+      // Inicia treino LoRA em paralelo
+      const zipDataUrl = await criarZipRosto(bufFrente, bufEsquerda, bufDireita);
+      iniciarTreino(zipDataUrl, pedidoId).catch(err =>
+        console.error('[iniciar] treino falhou:', err.message)
+      );
 
-    await supabaseAdmin.from('pedidos')
-      .update({ fal_request_id: requestIdPrevia })
-      .eq('id', pedidoId);
+      // Gera prévia via Gemini (~15-30s)
+      const imgBuffer = await gerarPreviaGemini(bufFrente, bufEsquerda, bufDireita, genero);
+      const urlGratis = await uploadParaR2(imgBuffer, `pedidos/${pedidoId}/foto_gratis.jpg`, 'image/jpeg');
 
-    return res.status(200).json({ pedidoId });
+      await supabaseAdmin.from('pedidos').update({
+        foto_gratis: urlGratis,
+        status: 'foto_gratis_pronta',
+      }).eq('id', pedidoId);
+
+      console.log('[iniciar] previa Gemini gerada para', pedidoId);
+
+    } catch (bgErr) {
+      console.error('[iniciar] erro background:', bgErr.message);
+      await supabaseAdmin.from('pedidos')
+        .update({ status: 'erro', erro_msg: bgErr.message })
+        .eq('id', pedidoId);
+    }
 
   } catch (err) {
     console.error('[iniciar]', err);
-    return res.status(500).json({ erro: 'Erro interno. Tente novamente.' });
+    if (!res.headersSent) {
+      res.status(500).json({ erro: 'Erro interno. Tente novamente.' });
+    }
   }
 }

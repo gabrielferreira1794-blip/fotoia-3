@@ -1,14 +1,8 @@
-// utils/ia.js — PuLID para prévia rápida + LoRA para as 9 fotos pagas
+// utils/ia.js — Gemini (Nano Banana) para prévia rápida + LoRA para 9 fotos pagas
 import { fal } from '@fal-ai/client';
+import { GoogleGenAI } from '@google/genai';
 
 fal.config({ credentials: process.env.FAL_KEY });
-
-const NEG = 'flaws in the eyes, flaws in the face, lowres, non-HDRi, low quality, worst quality, artifacts, noise, text, watermark, glitch, deformed, mutated, ugly, disfigured, low resolution, blurry, nsfw';
-
-const PROMPTS_PREVIA = {
-  feminino: 'professional headshot of a woman, studio lighting, clean white background, sharp focus, natural makeup, highly realistic portrait photography, 8k',
-  masculino: 'professional headshot of a man, studio lighting, clean white background, sharp focus, highly realistic portrait photography, 8k',
-};
 
 const PROMPTS_LORA = {
   feminino: [
@@ -35,30 +29,43 @@ const PROMPTS_LORA = {
   ],
 };
 
-// ── PRÉVIA via PuLID (~30-60s, alta fidelidade facial) ────────────────────────
-export const iniciarGeracaoGratis = async (urlFrente, urlEsquerda, urlDireita, pedidoId, genero) => {
+// ── PRÉVIA via Gemini Nano Banana (~15-30s, alta qualidade) ───────────────────
+/**
+ * Gera 1 foto profissional usando Gemini com as 3 fotos de referência
+ * Retorna buffer da imagem gerada
+ */
+export const gerarPreviaGemini = async (bufFrente, bufEsquerda, bufDireita, genero) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const g = genero || 'feminino';
-  const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}&tipo=previa`;
 
-  const { request_id } = await fal.queue.submit('fal-ai/pulid', {
-    input: {
-      reference_images: [
-        { image_url: urlFrente },
-        { image_url: urlEsquerda },
-        { image_url: urlDireita },
-      ],
-      prompt: PROMPTS_PREVIA[g],
-      negative_prompt: NEG,
-      num_images: 1,
-      guidance_scale: 1.5,
-      num_inference_steps: 4,
-      id_scale: 0.9,
-      mode: 'fidelity',
+  const prompt = g === 'feminino'
+    ? `You are a professional photographer. I will provide 3 reference photos of the same woman from different angles (front, left profile, right profile). Generate a new ultra-realistic professional headshot photo of THIS EXACT PERSON with the same facial features, skin tone, hair color and style. The photo should be: studio lighting, clean white/light gray background, sharp focus, natural professional expression, blazer or professional top, photorealistic 8K quality. Maintain the person's exact facial identity - same face structure, eyes, nose, lips. Do not change how the person looks.`
+    : `You are a professional photographer. I will provide 3 reference photos of the same man from different angles (front, left profile, right profile). Generate a new ultra-realistic professional headshot photo of THIS EXACT PERSON with the same facial features, skin tone, hair color and style. The photo should be: studio lighting, clean white/light gray background, sharp focus, natural professional expression, suit or professional top, photorealistic 8K quality. Maintain the person's exact facial identity - same face structure, eyes, nose, lips. Do not change how the person looks.`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-preview-05-20',
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: prompt },
+          { inlineData: { mimeType: 'image/jpeg', data: bufFrente.toString('base64') } },
+          { inlineData: { mimeType: 'image/jpeg', data: bufEsquerda.toString('base64') } },
+          { inlineData: { mimeType: 'image/jpeg', data: bufDireita.toString('base64') } },
+        ],
+      },
+    ],
+    config: {
+      responseModalities: ['IMAGE', 'TEXT'],
     },
-    webhookUrl,
   });
 
-  return request_id;
+  // Extrai a imagem gerada
+  const parts = response.candidates?.[0]?.content?.parts || [];
+  const imagePart = parts.find(p => p.inlineData?.data);
+  if (!imagePart) throw new Error('Gemini nao retornou imagem: ' + JSON.stringify(parts));
+
+  return Buffer.from(imagePart.inlineData.data, 'base64');
 };
 
 // ── 9 FOTOS PAGAS via LoRA (máxima qualidade) ────────────────────────────────
@@ -102,11 +109,9 @@ export const iniciarTreino = async (zipDataUrl, pedidoId) => {
 export const criarZipRosto = async (bufferFrente, bufferEsquerda, bufferDireita) => {
   const JSZip = (await import('jszip')).default;
   const zip = new JSZip();
-
   zip.file('rosto_frente.jpg', bufferFrente);
   zip.file('rosto_esquerda.jpg', bufferEsquerda);
   zip.file('rosto_direita.jpg', bufferDireita);
-
   const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
   return `data:application/zip;base64,${zipBuffer.toString('base64')}`;
 };
