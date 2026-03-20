@@ -1,4 +1,4 @@
-// api/iniciar.js — Upload 3 fotos, gera prévia via PhotoMaker + inicia treino LoRA em paralelo
+// api/iniciar.js — Upload 3 fotos, gera prévia via PuLID + treino LoRA em paralelo
 import { supabaseAdmin } from '../../utils/supabase';
 import { uploadParaR2 } from '../../utils/storage';
 import { iniciarGeracaoGratis, iniciarTreino, criarZipRosto } from '../../utils/ia';
@@ -41,16 +41,11 @@ export default async function handler(req, res) {
     const bufEsquerda = fs.readFileSync(fEsquerda.filepath);
     const bufDireita  = fs.readFileSync(fDireita.filepath);
 
-    // Upload das 3 fotos + ZIP para o R2
-    const [urlFrente, urlEsquerda, urlDireita, urlZip] = await Promise.all([
+    // Upload das 3 fotos para o R2
+    const [urlFrente, urlEsquerda, urlDireita] = await Promise.all([
       uploadParaR2(bufFrente,   `pedidos/${pedidoId}/frente.jpg`),
       uploadParaR2(bufEsquerda, `pedidos/${pedidoId}/esquerda.jpg`),
       uploadParaR2(bufDireita,  `pedidos/${pedidoId}/direita.jpg`),
-      // Cria e sobe o ZIP para usar no PhotoMaker
-      criarZipRosto(bufFrente, bufEsquerda, bufDireita).then(async (zipDataUrl) => {
-        const zipBuffer = Buffer.from(zipDataUrl.split(',')[1], 'base64');
-        return uploadParaR2(zipBuffer, `pedidos/${pedidoId}/fotos.zip`, 'application/zip');
-      }),
     ]);
 
     // Cria pedido no banco
@@ -62,13 +57,15 @@ export default async function handler(req, res) {
       status: 'processando',
     });
 
-    // Dispara prévia rápida (PhotoMaker, ~1 min) E treino LoRA em paralelo
-    const [requestIdPrevia, requestIdTreino] = await Promise.all([
-      iniciarGeracaoGratis(urlZip, pedidoId, genero),
-      iniciarTreino(
-        `data:application/zip;base64,${Buffer.concat([bufFrente, bufEsquerda, bufDireita]).toString('base64')}`,
-        pedidoId
-      ).catch(() => null), // treino é best-effort, não bloqueia
+    // Dispara PuLID (prévia ~30-60s) E treino LoRA em paralelo
+    const zipDataUrl = await criarZipRosto(bufFrente, bufEsquerda, bufDireita);
+
+    const [requestIdPrevia] = await Promise.all([
+      iniciarGeracaoGratis(urlFrente, urlEsquerda, urlDireita, pedidoId, genero),
+      iniciarTreino(zipDataUrl, pedidoId).catch(err => {
+        console.error('[iniciar] treino falhou (nao bloqueia):', err.message);
+        return null;
+      }),
     ]);
 
     await supabaseAdmin.from('pedidos')

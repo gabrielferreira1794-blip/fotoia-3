@@ -1,11 +1,13 @@
-// utils/ia.js — Híbrido: PhotoMaker para prévia rápida + LoRA para qualidade máxima
+// utils/ia.js — PuLID para prévia rápida + LoRA para as 9 fotos pagas
 import { fal } from '@fal-ai/client';
 
 fal.config({ credentials: process.env.FAL_KEY });
 
-const PROMPTS_PHOTOMAKER = {
-  feminino: 'professional headshot photo of a woman img, studio lighting, clean white background, sharp focus, natural makeup, highly realistic, 8k photography',
-  masculino: 'professional headshot photo of a man img, studio lighting, clean white background, sharp focus, highly realistic, 8k photography',
+const NEG = 'flaws in the eyes, flaws in the face, lowres, non-HDRi, low quality, worst quality, artifacts, noise, text, watermark, glitch, deformed, mutated, ugly, disfigured, low resolution, blurry, nsfw';
+
+const PROMPTS_PREVIA = {
+  feminino: 'professional headshot of a woman, studio lighting, clean white background, sharp focus, natural makeup, highly realistic portrait photography, 8k',
+  masculino: 'professional headshot of a man, studio lighting, clean white background, sharp focus, highly realistic portrait photography, 8k',
 };
 
 const PROMPTS_LORA = {
@@ -18,7 +20,7 @@ const PROMPTS_LORA = {
     'dramatic portrait of FOTOPESSOA, rembrandt lighting, dark studio background, high fashion editorial',
     'FOTOPESSOA outdoor park greenery, relaxed happy expression, lifestyle photography, warm tones',
     'fashion editorial portrait of FOTOPESSOA, plain cream background, minimal style, high-end magazine',
-    'FOTOPESSOA confident smile, modern coworking space background, bright natural light',
+    'FOTOPESSOA confident smile, modern coworking space, bright natural light, professional',
   ],
   masculino: [
     'portrait of FOTOPESSOA, warm natural light, outdoor cafe bokeh background, lifestyle photography',
@@ -29,29 +31,29 @@ const PROMPTS_LORA = {
     'dramatic portrait of FOTOPESSOA, rembrandt studio lighting, dark background, editorial',
     'FOTOPESSOA outdoor greenery park, relaxed confident pose, lifestyle photography warm tones',
     'editorial portrait of FOTOPESSOA, plain cream background, minimal clean style, high-end',
-    'FOTOPESSOA confident smile, modern coworking space background, bright natural light',
+    'FOTOPESSOA confident smile, modern coworking space, bright natural light, professional',
   ],
 };
 
-// ── PRÉVIA RÁPIDA via PhotoMaker (~1 minuto) ─────────────────────────────────
-/**
- * Inicia geração da foto grátis via PhotoMaker + webhook
- * Input: URL do ZIP com as 3 fotos já salvas no R2
- */
-export const iniciarGeracaoGratis = async (zipUrl, pedidoId, genero) => {
+// ── PRÉVIA via PuLID (~30-60s, alta fidelidade facial) ────────────────────────
+export const iniciarGeracaoGratis = async (urlFrente, urlEsquerda, urlDireita, pedidoId, genero) => {
   const g = genero || 'feminino';
-  const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}`;
+  const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}&tipo=previa`;
 
-  const { request_id } = await fal.queue.submit('fal-ai/photomaker', {
+  const { request_id } = await fal.queue.submit('fal-ai/pulid', {
     input: {
-      image_archive_url: zipUrl,
-      prompt: PROMPTS_PHOTOMAKER[g],
-      base_pipeline: 'photomaker',
-      style: 'Photographic',
-      style_strength: 25,
-      num_inference_steps: 50,
-      guidance_scale: 5,
+      reference_images: [
+        { image_url: urlFrente },
+        { image_url: urlEsquerda },
+        { image_url: urlDireita },
+      ],
+      prompt: PROMPTS_PREVIA[g],
+      negative_prompt: NEG,
       num_images: 1,
+      guidance_scale: 1.5,
+      num_inference_steps: 4,
+      id_scale: 0.9,
+      mode: 'fidelity',
     },
     webhookUrl,
   });
@@ -60,10 +62,6 @@ export const iniciarGeracaoGratis = async (zipUrl, pedidoId, genero) => {
 };
 
 // ── 9 FOTOS PAGAS via LoRA (máxima qualidade) ────────────────────────────────
-/**
- * Gera as 9 fotos pagas usando o modelo LoRA treinado
- * Chamado após PIX confirmado
- */
 export const gerarFotosPagas = async (loraUrl, genero) => {
   const g = genero || 'feminino';
   const prompts = PROMPTS_LORA[g] || PROMPTS_LORA.feminino;
@@ -85,10 +83,6 @@ export const gerarFotosPagas = async (loraUrl, genero) => {
 };
 
 // ── TREINO LoRA em paralelo ───────────────────────────────────────────────────
-/**
- * Inicia treino LoRA em background (para as 9 fotos pagas)
- * Webhook diferente — salva o loraUrl quando terminar
- */
 export const iniciarTreino = async (zipDataUrl, pedidoId) => {
   const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}&tipo=treino`;
 
@@ -104,7 +98,7 @@ export const iniciarTreino = async (zipDataUrl, pedidoId) => {
   return request_id;
 };
 
-// ── Empacota as 3 fotos em ZIP ────────────────────────────────────────────────
+// ── ZIP das 3 fotos para o treino ─────────────────────────────────────────────
 export const criarZipRosto = async (bufferFrente, bufferEsquerda, bufferDireita) => {
   const JSZip = (await import('jszip')).default;
   const zip = new JSZip();
