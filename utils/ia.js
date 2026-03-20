@@ -1,4 +1,4 @@
-// utils/ia.js — Flux.1 LoRA Portrait via fal.ai
+// utils/ia.js — Flux.1 LoRA via fal.ai
 import { fal } from '@fal-ai/client';
 
 fal.config({ credentials: process.env.FAL_KEY });
@@ -40,14 +40,13 @@ export const gerarFotoGratis = async (loraUrl, genero) => {
       num_inference_steps: 28,
       guidance_scale: 3.5,
       num_images: 1,
-      output_format: 'jpeg',
     },
   });
 
   return result.images[0].url;
 };
 
-// Gera as 9 fotos pagas em paralelo (apos PIX confirmado)
+// Gera as 9 fotos pagas em paralelo
 export const gerarFotosPagas = async (loraUrl, genero) => {
   const g = genero || 'feminino';
   const prompts = (PROMPTS[g] || PROMPTS.feminino).slice(1);
@@ -61,7 +60,6 @@ export const gerarFotosPagas = async (loraUrl, genero) => {
           num_inference_steps: 28,
           guidance_scale: 3.5,
           num_images: 1,
-          output_format: 'jpeg',
         },
       });
       return result.images[0].url;
@@ -69,18 +67,15 @@ export const gerarFotosPagas = async (loraUrl, genero) => {
   );
 };
 
-// Inicia treino LoRA portrait — webhook avisa quando terminar (~10-15 min)
+// Inicia treino LoRA — webhook avisa quando terminar (~10-15 min)
 export const iniciarTreino = async (zipDataUrl, pedidoId) => {
   const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}`;
 
-  const { request_id } = await fal.queue.submit('fal-ai/flux-lora-portrait-trainer', {
+  const { request_id } = await fal.queue.submit('fal-ai/flux-lora-fast-training', {
     input: {
       images_data_url: zipDataUrl,
+      trigger_word: 'FOTOPESSOA',
       steps: 1000,
-      learning_rate: 0.0002,
-      multiresolution_training: true,
-      subject_crop: true,
-      create_masks: false,
     },
     webhookUrl,
   });
