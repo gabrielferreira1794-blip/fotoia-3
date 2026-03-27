@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
-import { Download, CheckCircle2, Sparkles, Clock, Image } from 'lucide-react';
+import { Download as DownloadIcon, CheckCircle2, Sparkles, Clock, Image } from 'lucide-react';
 
 export async function getServerSideProps({ params }) {
   const { supabaseAdmin } = await import('../../utils/supabase');
@@ -156,14 +156,14 @@ export default function Download({ pedido, expirado }) {
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {selecionadas.size > 0 && (
                   <button onClick={baixarSelecionadas} disabled={baixando} className="btn btn-outline" style={{ padding: '12px 20px', fontSize: 14 }}>
-                    <Download size={14} /> Baixar {selecionadas.size} selecionada{selecionadas.size > 1 ? 's' : ''}
+                    <DownloadIcon size={14} /> Baixar {selecionadas.size} selecionada{selecionadas.size > 1 ? 's' : ''}
                   </button>
                 )}
                 <button onClick={baixarTodas} disabled={baixando} className="btn btn-gold" style={{ padding: '12px 24px', fontSize: 14 }}>
                   {baixando ? (
                     <><span className="spinner" /> Preparando ZIP...</>
                   ) : (
-                    <><Download size={14} /> Baixar todas ({pedido.fotos.length} fotos)</>
+                    <><DownloadIcon size={14} /> Baixar todas ({pedido.fotos.length} fotos)</>
                   )}
                 </button>
               </div>
@@ -233,7 +233,7 @@ export default function Download({ pedido, expirado }) {
                   style={{ position: 'absolute', bottom: 10, right: 10, width: 34, height: 34, borderRadius: '50%', background: 'rgba(13,13,13,0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', textDecoration: 'none', transition: 'all .2s', opacity: 0 }}
                   className="download-btn"
                 >
-                  <Download size={14} />
+                  <DownloadIcon size={14} />
                 </a>
               </motion.div>
             ))}
