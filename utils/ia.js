@@ -33,24 +33,21 @@ const PROMPTS_LORA = {
   ],
 };
 
-// ── PRÉVIA RÁPIDA via Flux PuLID (~30-60s) ───────────────────────────────────
-// Nota: verificar endpoint exato em fal.ai/models — pode ser fal-ai/pulid ou fal-ai/flux-pulid
+// ── PRÉVIA RÁPIDA via InstantID (~30-60s) ────────────────────────────────────
 export const iniciarGeracaoPrevia = async (urlFrente, urlEsquerda, urlDireita, pedidoId, genero) => {
   const g = genero || 'feminino';
   const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}&tipo=previa`;
 
-  const { request_id } = await fal.queue.submit('fal-ai/flux-pulid', {
+  const { request_id } = await fal.queue.submit('fal-ai/instant-id', {
     input: {
+      face_image_url: urlFrente,
       prompt: PROMPT_PREVIA[g],
-      reference_images: [
-        { image_url: urlFrente },
-        { image_url: urlEsquerda },
-        { image_url: urlDireita },
-      ],
-      num_inference_steps: 20,
-      guidance_scale: 4.0,
-      id_scale: 1.0,         // máxima preservação de identidade
-      num_images: 1,
+      negative_prompt: 'blurry, low quality, distorted face, deformed, ugly, bad anatomy, watermark, nsfw',
+      num_inference_steps: 30,
+      guidance_scale: 5.0,
+      ip_adapter_scale: 0.8,
+      controlnet_conditioning_scale: 0.8,
+      image_size: { width: 1024, height: 1024 },
     },
     webhookUrl,
   });
@@ -66,7 +63,7 @@ export const iniciarTreino = async (zipDataUrl, pedidoId) => {
     input: {
       images_data_url: zipDataUrl,
       trigger_word: 'FOTOPESSOA',
-      steps: 2000,
+      steps: 1000,
     },
     webhookUrl,
   });
