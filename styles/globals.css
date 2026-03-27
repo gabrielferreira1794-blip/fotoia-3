@@ -3,17 +3,24 @@
 
 :root {
   --bg: #0d0d0d;
-  --surface: #161616;
-  --border: rgba(255,255,255,0.08);
-  --white: #ffffff;
+  --surface: #141414;
+  --surface-2: #1a1a1a;
+  --border: rgba(255,255,255,0.07);
+  --border-hover: rgba(255,255,255,0.15);
+  --white: #f5f5f5;
   --off-white: #e8e4de;
   --gold: #d4a843;
-  --gold-muted: rgba(212,168,67,0.15);
+  --gold-light: #f0c45a;
+  --gold-muted: rgba(212,168,67,0.12);
+  --gold-border: rgba(212,168,67,0.3);
   --gray: #888;
-  --gray-light: #555;
+  --gray-2: #666;
+  --gray-3: #444;
   --red: #ff4d4d;
   --green: #22c55e;
   --radius: 16px;
+  --radius-sm: 10px;
+  --radius-lg: 24px;
 }
 
 html { scroll-behavior: smooth; }
@@ -21,13 +28,20 @@ html { scroll-behavior: smooth; }
 body {
   background: var(--bg);
   color: var(--white);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, sans-serif;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  font-feature-settings: 'cv11', 'ss01';
 }
 
-h1,h2,h3,h4 { font-family: 'Sora', sans-serif; }
+h1, h2, h3, h4 {
+  font-family: 'Sora', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+a { color: inherit; }
 
 .btn {
   display: inline-flex;
@@ -39,17 +53,36 @@ h1,h2,h3,h4 { font-family: 'Sora', sans-serif; }
   font-family: 'Sora', sans-serif;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   text-decoration: none;
+  white-space: nowrap;
 }
+
 .btn-gold {
   background: var(--gold);
-  color: #000;
+  color: #0d0d0d;
   padding: 16px 36px;
   font-size: 15px;
+  letter-spacing: -0.01em;
 }
-.btn-gold:hover { background: #e8bc50; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,168,67,0.3); }
-.btn-gold:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-gold:hover {
+  background: var(--gold-light);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(212,168,67,0.35);
+}
+
+.btn-gold:active {
+  transform: translateY(0);
+}
+
+.btn-gold:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .btn-outline {
   background: transparent;
   border: 1px solid var(--border);
@@ -57,37 +90,64 @@ h1,h2,h3,h4 { font-family: 'Sora', sans-serif; }
   padding: 14px 28px;
   font-size: 14px;
 }
-.btn-outline:hover { border-color: rgba(255,255,255,0.3); }
+
+.btn-outline:hover {
+  border-color: var(--border-hover);
+  background: rgba(255,255,255,0.04);
+}
 
 .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
 .section { padding: 80px 0; }
 
-@keyframes fadeUp {
-  from { opacity:0; transform:translateY(20px); }
-  to { opacity:1; transform:translateY(0); }
-}
+/* Spinner */
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 @keyframes shimmer {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }
 }
 
-.fade-up { animation: fadeUp .5s ease both; }
-.fade-up-1 { animation: fadeUp .5s .1s ease both; }
-.fade-up-2 { animation: fadeUp .5s .2s ease both; }
-.fade-up-3 { animation: fadeUp .5s .3s ease both; }
-.fade-up-4 { animation: fadeUp .5s .4s ease both; }
-
 .spinner {
   width: 18px; height: 18px;
-  border: 2px solid rgba(0,0,0,0.2);
-  border-top-color: #000;
+  border: 2px solid rgba(0,0,0,0.15);
+  border-top-color: #0d0d0d;
   border-radius: 50%;
-  animation: spin .7s linear infinite;
-  display: inline-block; flex-shrink: 0;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
 }
+
 .spinner-gold {
   border-color: rgba(212,168,67,0.2);
   border-top-color: var(--gold);
+}
+
+/* Photo slot hover overlay */
+.foto-slot-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  opacity: 0; transition: opacity 0.2s;
+}
+.foto-slot:hover .foto-slot-overlay { opacity: 1; }
+
+/* Input base */
+.input-base {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 13px 16px;
+  font-size: 15px;
+  color: var(--white);
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s;
+  width: 100%;
+  outline: none;
+}
+.input-base:focus { border-color: var(--gold-border); }
+.input-base::placeholder { color: var(--gray-3); }
+
+@media (max-width: 640px) {
+  .btn-gold { padding: 14px 28px; font-size: 14px; }
 }
