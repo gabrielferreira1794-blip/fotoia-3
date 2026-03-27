@@ -1,4 +1,4 @@
-// pages/api/webhooks/pix.js — PIX confirmado → gera 9 fotos com InstantID
+// pages/api/webhooks/pix.js — PIX confirmado → gera 9 fotos com LoRA (se já pronto)
 import { supabaseAdmin } from '../../../utils/supabase';
 import { validarWebhookEfi, extrairTxidDoPagamento, txidParaPedidoId } from '../../../utils/pix';
 import { gerarFotosPagas } from '../../../utils/ia';
@@ -31,19 +31,28 @@ export default async function handler(req, res) {
     if (!pedido) { console.error(`[webhook-pix] pedido ${pedidoId} não encontrado`); return; }
     if (pedido.pix_pago) { console.log(`[webhook-pix] pedido ${pedidoId} já processado`); return; }
 
+    // Marca pagamento confirmado
     await supabaseAdmin.from('pedidos').update({
       pix_pago: true,
       pix_pago_em: new Date().toISOString(),
-      status: 'gerando_resto',
+      status: 'aguardando_pagamento', // mantém status até LoRA estar pronto
     }).eq('id', pedidoId);
 
-    // Usa foto_frente (foto original do cliente) para gerar as 9 pagas
-    const urlsFal = await gerarFotosPagas(pedido.foto_frente, pedido.genero || 'feminino');
+    // LoRA ainda não terminou → o webhook do treino vai gerar as 9 fotos quando finalizar
+    if (!pedido.lora_url) {
+      console.log(`[webhook-pix] pedido ${pedidoId} pago — aguardando LoRA para gerar fotos`);
+      return;
+    }
 
+    // LoRA já está pronto → gera as 9 fotos agora
+    console.log(`[webhook-pix] LoRA já pronto → gerando 9 fotos para ${pedidoId}`);
+    await supabaseAdmin.from('pedidos')
+      .update({ status: 'gerando_resto' })
+      .eq('id', pedidoId);
+
+    const urlsFal = await gerarFotosPagas(pedido.lora_url, pedido.genero || 'feminino');
     const urlsFinais = await Promise.all(
-      urlsFal.map((url, i) =>
-        baixarEsalvarNoR2(url, `pedidos/${pedido.id}/pagas/foto_${i + 1}.jpg`)
-      )
+      urlsFal.map((url, i) => baixarEsalvarNoR2(url, `pedidos/${pedidoId}/pagas/foto_${i + 1}.jpg`))
     );
 
     await supabaseAdmin.from('pedidos').update({
@@ -52,14 +61,15 @@ export default async function handler(req, res) {
       completed_at: new Date().toISOString(),
     }).eq('id', pedidoId);
 
-    await enviarEmailEntrega(pedido.email, pedido.nome, pedido.id, [pedido.foto_gratis, ...urlsFinais]);
+    await enviarEmailEntrega(pedido.email, pedido.nome, pedidoId, [pedido.foto_gratis, ...urlsFinais]);
     console.log(`[webhook-pix] pedido ${pedidoId} entregue ✓`);
 
   } catch (err) {
-    console.error('[webhook-pix] erro:', err);
-    await supabaseAdmin.from('pedidos')
-      .update({ status: 'erro', erro_msg: err.message })
-      .eq('id', pedidoId)
-      .catch(() => {});
+    console.error('[webhook-pix] erro:', err.message);
+    try {
+      await supabaseAdmin.from('pedidos')
+        .update({ status: 'erro', erro_msg: err.message })
+        .eq('id', pedidoId);
+    } catch (_) {}
   }
 }

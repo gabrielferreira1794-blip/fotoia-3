@@ -1,14 +1,15 @@
-// utils/ia.js — Flux.1 LoRA via fal.ai (máxima qualidade fotorrealista)
+// utils/ia.js — Hybrid: Flux PuLID (prévia rápida) + LoRA (9 fotos pagas)
 import { fal } from '@fal-ai/client';
 
 fal.config({ credentials: process.env.FAL_KEY });
 
-// Trigger word aparece no início de cada prompt para máxima identidade
-const PROMPTS = {
+const PROMPT_PREVIA = {
+  feminino: 'RAW photo, professional headshot of a woman, softbox studio lighting, neutral light gray background, sharp focus, detailed skin texture, 85mm portrait lens, natural expression, photorealistic, 8k high resolution',
+  masculino: 'RAW photo, professional headshot of a man, softbox studio lighting, neutral light gray background, sharp focus, detailed skin texture, 85mm portrait lens, natural expression, photorealistic, 8k high resolution',
+};
+
+const PROMPTS_LORA = {
   feminino: [
-    // Foto grátis — headshot profissional limpo
-    'RAW photo of FOTOPESSOA, professional headshot, softbox studio lighting, neutral light gray background, sharp focus, detailed skin texture, 85mm portrait lens, f/2.8 aperture, photorealistic, 8k high resolution',
-    // 9 fotos pagas
     'RAW photo of FOTOPESSOA, natural outdoor portrait, warm bokeh background, shallow depth of field, lifestyle photography, candid professional expression, 4k photorealistic, high detail',
     'RAW photo of FOTOPESSOA wearing elegant blazer, confident pose, modern corporate office background, professional business portrait, sharp focus, photorealistic, high resolution',
     'close-up portrait of FOTOPESSOA, golden hour sunlight, cinematic color grading, editorial magazine quality, detailed skin, sharp focus, photorealistic',
@@ -17,11 +18,9 @@ const PROMPTS = {
     'dramatic portrait of FOTOPESSOA, rembrandt studio lighting, dark studio background, high fashion editorial style, intense focus, photorealistic',
     'RAW photo of FOTOPESSOA in relaxed pose, lush green park background, warm afternoon golden light, lifestyle photography, natural expression, 4k photorealistic',
     'editorial portrait of FOTOPESSOA, clean cream studio background, minimalist high-end style, fashion magazine quality, sharp focus, photorealistic, 8k',
+    'RAW photo of FOTOPESSOA, rooftop city view background, golden hour, confident professional pose, lifestyle editorial, photorealistic',
   ],
   masculino: [
-    // Foto grátis — headshot profissional limpo
-    'RAW photo of FOTOPESSOA, professional headshot, softbox studio lighting, neutral light gray background, sharp focus, detailed skin texture, 85mm portrait lens, f/2.8 aperture, photorealistic, 8k high resolution',
-    // 9 fotos pagas
     'RAW photo of FOTOPESSOA, natural outdoor portrait, warm bokeh background, shallow depth of field, lifestyle photography, confident professional expression, 4k photorealistic, high detail',
     'RAW photo of FOTOPESSOA wearing tailored suit, confident pose, modern corporate office background, professional business portrait, sharp focus, photorealistic, high resolution',
     'close-up portrait of FOTOPESSOA, golden hour sunlight, cinematic color grading, editorial magazine quality, detailed skin, sharp focus, photorealistic',
@@ -30,33 +29,55 @@ const PROMPTS = {
     'dramatic portrait of FOTOPESSOA, rembrandt studio lighting, dark background, editorial style, sharp focus, intense expression, photorealistic',
     'RAW photo of FOTOPESSOA relaxed and confident, lush green park setting, warm afternoon light, lifestyle photography, natural expression, 4k photorealistic',
     'editorial portrait of FOTOPESSOA, plain light studio background, minimal clean style, high-end fashion quality, sharp focus, photorealistic, 8k',
+    'RAW photo of FOTOPESSOA, rooftop city view background, golden hour light, confident pose, lifestyle editorial, photorealistic',
   ],
 };
 
-// Gera 1 foto grátis após treino LoRA concluído
-export const gerarFotoGratis = async (loraUrl, genero) => {
+// ── PRÉVIA RÁPIDA via Flux PuLID (~30-60s) ───────────────────────────────────
+// Nota: verificar endpoint exato em fal.ai/models — pode ser fal-ai/pulid ou fal-ai/flux-pulid
+export const iniciarGeracaoPrevia = async (urlFrente, urlEsquerda, urlDireita, pedidoId, genero) => {
   const g = genero || 'feminino';
-  const prompt = PROMPTS[g]?.[0] || PROMPTS.feminino[0];
+  const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}&tipo=previa`;
 
-  const result = await fal.run('fal-ai/flux-lora', {
+  const { request_id } = await fal.queue.submit('fal-ai/flux-pulid', {
     input: {
-      prompt,
-      loras: [{ path: loraUrl, scale: 1.0 }],
-      num_inference_steps: 35,
-      guidance_scale: 4.5,
-      image_size: { width: 1024, height: 1024 },
+      prompt: PROMPT_PREVIA[g],
+      reference_images: [
+        { image_url: urlFrente },
+        { image_url: urlEsquerda },
+        { image_url: urlDireita },
+      ],
+      num_inference_steps: 20,
+      guidance_scale: 4.0,
+      id_scale: 1.0,         // máxima preservação de identidade
       num_images: 1,
-      enable_safety_checker: false,
     },
+    webhookUrl,
   });
 
-  return result.images[0].url;
+  return request_id;
 };
 
-// Gera as 9 fotos pagas em paralelo (após PIX confirmado)
+// ── TREINO LoRA (para as 9 fotos pagas, em paralelo com a prévia) ─────────────
+export const iniciarTreino = async (zipDataUrl, pedidoId) => {
+  const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}&tipo=treino`;
+
+  const { request_id } = await fal.queue.submit('fal-ai/flux-lora-fast-training', {
+    input: {
+      images_data_url: zipDataUrl,
+      trigger_word: 'FOTOPESSOA',
+      steps: 2000,
+    },
+    webhookUrl,
+  });
+
+  return request_id;
+};
+
+// ── 9 FOTOS PAGAS via LoRA (após PIX confirmado) ──────────────────────────────
 export const gerarFotosPagas = async (loraUrl, genero) => {
   const g = genero || 'feminino';
-  const prompts = (PROMPTS[g] || PROMPTS.feminino).slice(1);
+  const prompts = PROMPTS_LORA[g] || PROMPTS_LORA.feminino;
 
   return Promise.all(
     prompts.map(async (prompt) => {
@@ -76,24 +97,7 @@ export const gerarFotosPagas = async (loraUrl, genero) => {
   );
 };
 
-// Inicia treino LoRA — webhook avisa quando terminar
-export const iniciarTreino = async (zipDataUrl, pedidoId) => {
-  const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}&tipo=treino`;
-
-  const { request_id } = await fal.queue.submit('fal-ai/flux-lora-fast-training', {
-    input: {
-      images_data_url: zipDataUrl,
-      trigger_word: 'FOTOPESSOA',
-      steps: 2000,         // dobrado: mais steps = face mais fiel com poucas fotos
-      multiresolution_training: true, // treina em múltiplas resoluções
-    },
-    webhookUrl,
-  });
-
-  return request_id;
-};
-
-// Empacota as 3 fotos em ZIP para o treino
+// ── ZIP das 3 fotos para o treino ─────────────────────────────────────────────
 export const criarZipRosto = async (bufferFrente, bufferEsquerda, bufferDireita) => {
   const JSZip = (await import('jszip')).default;
   const zip = new JSZip();

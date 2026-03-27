@@ -1,7 +1,7 @@
-// api/iniciar.js — Upload 3 fotos + inicia treino LoRA
+// api/iniciar.js — Upload 3 fotos + dispara prévia rápida E treino LoRA em paralelo
 import { supabaseAdmin } from '../../utils/supabase';
 import { uploadParaR2 } from '../../utils/storage';
-import { iniciarTreino, criarZipRosto } from '../../utils/ia';
+import { iniciarGeracaoPrevia, iniciarTreino, criarZipRosto } from '../../utils/ia';
 
 export const config = { api: { bodyParser: false } };
 
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     const bufEsquerda = fs.readFileSync(fEsquerda.filepath);
     const bufDireita  = fs.readFileSync(fDireita.filepath);
 
-    // Upload das 3 fotos para o R2
+    // Upload das 3 fotos para R2
     const [urlFrente, urlEsquerda, urlDireita] = await Promise.all([
       uploadParaR2(bufFrente,   `pedidos/${pedidoId}/frente.jpg`),
       uploadParaR2(bufEsquerda, `pedidos/${pedidoId}/esquerda.jpg`),
@@ -57,13 +57,19 @@ export default async function handler(req, res) {
       status: 'processando',
     });
 
-    // Cria ZIP e inicia treino LoRA
+    // Dispara prévia rápida (PuLID Flux, ~60s) E treino LoRA (~20min) em paralelo
     const zipDataUrl = await criarZipRosto(bufFrente, bufEsquerda, bufDireita);
-    const requestId  = await iniciarTreino(zipDataUrl, pedidoId);
+
+    const [previaRequestId, loraRequestId] = await Promise.all([
+      iniciarGeracaoPrevia(urlFrente, urlEsquerda, urlDireita, pedidoId, genero),
+      iniciarTreino(zipDataUrl, pedidoId),
+    ]);
 
     await supabaseAdmin.from('pedidos')
-      .update({ fal_request_id: requestId })
+      .update({ fal_request_id: loraRequestId })
       .eq('id', pedidoId);
+
+    console.log(`[iniciar] pedido=${pedidoId} previa=${previaRequestId} lora=${loraRequestId}`);
 
     return res.status(200).json({ pedidoId });
 
