@@ -57,9 +57,10 @@ export default async function handler(req, res) {
       status: 'processando',
     });
 
-    // Cria ZIP e inicia treino LoRA (obrigatório)
-    const zipDataUrl = await criarZipRosto(bufFrente, bufEsquerda, bufDireita);
-    const loraRequestId = await iniciarTreino(zipDataUrl, pedidoId);
+    // Cria ZIP, faz upload para R2 e inicia treino LoRA (obrigatório)
+    const zipBuffer = await criarZipRosto(bufFrente, bufEsquerda, bufDireita);
+    const zipUrl = await uploadParaR2(zipBuffer, `pedidos/${pedidoId}/fotos.zip`, 'application/zip');
+    const loraRequestId = await iniciarTreino(zipUrl, pedidoId);
 
     await supabaseAdmin.from('pedidos')
       .update({ fal_request_id: loraRequestId })

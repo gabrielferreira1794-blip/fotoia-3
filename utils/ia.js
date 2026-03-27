@@ -101,6 +101,5 @@ export const criarZipRosto = async (bufferFrente, bufferEsquerda, bufferDireita)
   zip.file('rosto_frente.jpg', bufferFrente);
   zip.file('rosto_esquerda.jpg', bufferEsquerda);
   zip.file('rosto_direita.jpg', bufferDireita);
-  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-  return `data:application/zip;base64,${zipBuffer.toString('base64')}`;
+  return zip.generateAsync({ type: 'nodebuffer' });
 };
