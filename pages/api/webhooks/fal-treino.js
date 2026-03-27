@@ -34,8 +34,9 @@ export default async function handler(req, res) {
     try {
       const urlFal =
         payload.output?.images?.[0]?.url ||
+        payload.output?.image?.url ||
         payload.payload?.images?.[0]?.url ||
-        payload.output?.image?.url;
+        payload.payload?.image?.url;
 
       if (!urlFal) throw new Error('URL da imagem ausente: ' + JSON.stringify(payload.output || payload.payload));
 
