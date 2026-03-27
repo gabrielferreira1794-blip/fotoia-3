@@ -57,24 +57,25 @@ export default async function handler(req, res) {
       status: 'processando',
     });
 
-    // Dispara prévia rápida (PuLID Flux, ~60s) E treino LoRA (~20min) em paralelo
+    // Cria ZIP e inicia treino LoRA (obrigatório)
     const zipDataUrl = await criarZipRosto(bufFrente, bufEsquerda, bufDireita);
-
-    const [previaRequestId, loraRequestId] = await Promise.all([
-      iniciarGeracaoPrevia(urlFrente, urlEsquerda, urlDireita, pedidoId, genero),
-      iniciarTreino(zipDataUrl, pedidoId),
-    ]);
+    const loraRequestId = await iniciarTreino(zipDataUrl, pedidoId);
 
     await supabaseAdmin.from('pedidos')
       .update({ fal_request_id: loraRequestId })
       .eq('id', pedidoId);
 
-    console.log(`[iniciar] pedido=${pedidoId} previa=${previaRequestId} lora=${loraRequestId}`);
+    // Dispara prévia rápida (InstantID) em paralelo — falha não bloqueia o pedido
+    iniciarGeracaoPrevia(urlFrente, urlEsquerda, urlDireita, pedidoId, genero)
+      .then(id => console.log(`[iniciar] previa disparada id=${id}`))
+      .catch(err => console.warn(`[iniciar] previa falhou (nao critico): ${err.message}`));
+
+    console.log(`[iniciar] pedido=${pedidoId} lora=${loraRequestId}`);
 
     return res.status(200).json({ pedidoId });
 
   } catch (err) {
-    console.error('[iniciar]', err);
-    return res.status(500).json({ erro: 'Erro interno. Tente novamente.' });
+    console.error('[iniciar] ERRO:', err.message, err.stack);
+    return res.status(500).json({ erro: err.message || 'Erro interno. Tente novamente.' });
   }
 }
