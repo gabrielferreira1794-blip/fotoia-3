@@ -1,7 +1,123 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, CheckCircle2, ArrowRight, Shield, Zap, Star, Camera, Upload, ArrowDown, Lock, MessageCircle } from 'lucide-react';
+import { Sparkles, CheckCircle2, ArrowRight, Shield, Zap, Star, Camera, Upload, ArrowDown, Lock, X, Circle } from 'lucide-react';
+
+function CameraModal({ slot, onCaptura, onFechar }) {
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [pronto, setPronto] = useState(false);
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    let stream;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } })
+      .then(s => {
+        stream = s;
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          videoRef.current.onloadedmetadata = () => setPronto(true);
+        }
+      })
+      .catch(() => setErro('Não foi possível acessar a câmera. Verifique as permissões do navegador.'));
+
+    return () => { stream?.getTracks().forEach(t => t.stop()); };
+  }, []);
+
+  const capturar = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    // Espelha a imagem (como o usuário vê na tela)
+    const ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0);
+    canvas.toBlob(blob => {
+      const file = new File([blob], `camera_${slot}.jpg`, { type: 'image/jpeg' });
+      onCaptura(slot, file);
+    }, 'image/jpeg', 0.92);
+  };
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        onClick={e => { if (e.target === e.currentTarget) onFechar(); }}
+      >
+        <motion.div
+          initial={{ scale: 0.92, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.92, opacity: 0 }}
+          transition={{ ease: [0.22, 1, 0.36, 1], duration: 0.35 }}
+          style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, overflow: 'hidden', width: '100%', maxWidth: 560, position: 'relative' }}
+        >
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Camera size={16} color="#d4a843" />
+              <span style={{ fontFamily: 'Sora, sans-serif', fontSize: 14, fontWeight: 600 }}>Tirar foto com a câmera</span>
+            </div>
+            <button onClick={onFechar} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#888', transition: 'all .2s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#888'; }}>
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Câmera */}
+          <div style={{ position: 'relative', background: '#000', aspectRatio: '4/3' }}>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transform: 'scaleX(-1)' /* espelha */ }}
+            />
+            {!pronto && !erro && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                <span className="spinner spinner-gold" />
+                <span style={{ fontSize: 13, color: '#666' }}>Inicializando câmera...</span>
+              </div>
+            )}
+            {erro && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, textAlign: 'center' }}>
+                <Camera size={32} color="#444" />
+                <p style={{ fontSize: 14, color: '#666', lineHeight: 1.6 }}>{erro}</p>
+              </div>
+            )}
+            {/* Guia de posicionamento */}
+            {pronto && (
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '55%', aspectRatio: '3/4', border: '2px dashed rgba(212,168,67,0.4)', borderRadius: 12 }} />
+              </div>
+            )}
+          </div>
+
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+          {/* Rodapé */}
+          <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <button
+              onClick={capturar}
+              disabled={!pronto}
+              style={{ width: 64, height: 64, borderRadius: '50%', background: pronto ? '#d4a843' : '#333', border: '4px solid rgba(255,255,255,0.15)', cursor: pronto ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s', boxShadow: pronto ? '0 0 24px rgba(212,168,67,0.4)' : 'none' }}
+              onMouseEnter={e => { if (pronto) e.currentTarget.style.transform = 'scale(1.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+            >
+              <Circle size={24} color={pronto ? '#0d0d0d' : '#555'} fill={pronto ? '#0d0d0d' : 'transparent'} />
+            </button>
+            <p style={{ fontSize: 12, color: '#444', textAlign: 'center' }}>Posicione seu rosto dentro do guia e clique para capturar</p>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -50,6 +166,7 @@ export default function Home() {
   const [pedidoId, setPedidoId] = useState(null);
 
   const refs = { frente: useRef(), esquerda: useRef(), direita: useRef() };
+  const [cameraSlot, setCameraSlot] = useState(null);
 
   const selecionarFoto = useCallback(async (slot, file) => {
     if (!file) return;
@@ -97,8 +214,20 @@ export default function Home() {
     return null;
   }
 
+  const handleCapturaCamara = useCallback(async (slot, file) => {
+    await selecionarFoto(slot, file);
+    setCameraSlot(null);
+  }, [selecionarFoto]);
+
   return (
     <>
+      {cameraSlot && (
+        <CameraModal
+          slot={cameraSlot}
+          onCaptura={handleCapturaCamara}
+          onFechar={() => setCameraSlot(null)}
+        />
+      )}
       <Head>
         <title>FotoIA — Fotos Profissionais com Inteligência Artificial</title>
         <meta name="description" content="Gere fotos profissionais com IA em minutos. Receba 1 foto grátis e desbloqueie 9 mais com PIX." />
@@ -274,7 +403,6 @@ export default function Home() {
                   <div
                     key={slot}
                     className="foto-slot"
-                    onClick={() => refs[slot].current?.click()}
                     style={{
                       position: 'relative', aspectRatio: '3/4',
                       background: fotos[slot] ? 'transparent' : 'rgba(255,255,255,0.02)',
@@ -282,26 +410,51 @@ export default function Home() {
                       borderRadius: 12,
                       display: 'flex', flexDirection: 'column',
                       alignItems: 'center', justifyContent: 'center',
-                      gap: 6, cursor: 'pointer', transition: 'all .2s',
+                      gap: 6, transition: 'all .2s',
                       overflow: 'hidden', textAlign: 'center', padding: 12,
                     }}
                   >
                     <input ref={refs[slot]} type="file" accept="image/*" style={{ display: 'none' }}
                       onChange={e => selecionarFoto(slot, e.target.files[0])} />
+
                     {fotos[slot] ? (
                       <>
                         <img src={fotos[slot].preview} alt={label} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                        <div className="foto-slot-overlay">
-                          <CheckCircle2 size={22} color="#d4a843" />
-                          <span style={{ fontSize: 11, color: '#fff', fontFamily: 'Sora, sans-serif' }}>Trocar</span>
+                        <div className="foto-slot-overlay" style={{ cursor: 'default' }}>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={() => refs[slot].current?.click()}
+                              style={{ background: 'rgba(13,13,13,0.85)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '6px 12px', color: '#fff', fontSize: 11, fontFamily: 'Sora, sans-serif', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <Upload size={11} /> Arquivo
+                            </button>
+                            <button onClick={() => setCameraSlot(slot)}
+                              style={{ background: 'rgba(212,168,67,0.2)', border: '1px solid rgba(212,168,67,0.4)', borderRadius: 8, padding: '6px 12px', color: '#d4a843', fontSize: 11, fontFamily: 'Sora, sans-serif', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <Camera size={11} /> Câmera
+                            </button>
+                          </div>
                         </div>
                       </>
                     ) : (
                       <>
-                        <div style={{ fontSize: 26 }}>{emoji}</div>
-                        <div style={{ fontSize: 12, fontWeight: 600, fontFamily: 'Sora, sans-serif', color: '#c8c4be' }}>{label}</div>
-                        <div style={{ fontSize: 10, color: '#555', lineHeight: 1.4 }}>{desc}</div>
-                        <div style={{ fontSize: 11, color: '#d4a843', background: 'rgba(212,168,67,0.1)', padding: '4px 12px', borderRadius: 100, marginTop: 2 }}>+ Adicionar</div>
+                        <div style={{ fontSize: 22 }}>{emoji}</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, fontFamily: 'Sora, sans-serif', color: '#c8c4be' }}>{label}</div>
+                        <div style={{ fontSize: 10, color: '#555', lineHeight: 1.4, marginBottom: 4 }}>{desc}</div>
+                        {/* Botões de ação */}
+                        <button
+                          onClick={() => refs[slot].current?.click()}
+                          style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 8px', color: '#c8c4be', fontSize: 11, fontFamily: 'Sora, sans-serif', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all .15s' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+                        >
+                          <Upload size={11} /> Arquivo
+                        </button>
+                        <button
+                          onClick={() => setCameraSlot(slot)}
+                          style={{ width: '100%', background: 'rgba(212,168,67,0.08)', border: '1px solid rgba(212,168,67,0.2)', borderRadius: 8, padding: '6px 8px', color: '#d4a843', fontSize: 11, fontFamily: 'Sora, sans-serif', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all .15s' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,168,67,0.15)'; e.currentTarget.style.borderColor = 'rgba(212,168,67,0.35)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(212,168,67,0.08)'; e.currentTarget.style.borderColor = 'rgba(212,168,67,0.2)'; }}
+                        >
+                          <Camera size={11} /> Câmera
+                        </button>
                       </>
                     )}
                   </div>
