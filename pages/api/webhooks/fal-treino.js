@@ -18,10 +18,10 @@ export default async function handler(req, res) {
   res.json({ ok: true });
 
   if (payload.status === 'ERROR') {
-    console.error('[fal-webhook] erro fal:', JSON.stringify(payload.error));
+    console.error('[fal-webhook] erro fal FULL PAYLOAD:', JSON.stringify(payload));
     try {
       await supabaseAdmin.from('pedidos')
-        .update({ status: 'erro', erro_msg: JSON.stringify(payload.error) })
+        .update({ status: 'erro', erro_msg: JSON.stringify(payload.error || payload) })
         .eq('id', pedidoId);
     } catch (_) {}
     return;

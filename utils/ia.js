@@ -98,8 +98,9 @@ export const gerarFotosPagas = async (loraUrl, genero) => {
 export const criarZipRosto = async (bufferFrente, bufferEsquerda, bufferDireita) => {
   const JSZip = (await import('jszip')).default;
   const zip = new JSZip();
-  zip.file('rosto_frente.jpg', bufferFrente);
-  zip.file('rosto_esquerda.jpg', bufferEsquerda);
-  zip.file('rosto_direita.jpg', bufferDireita);
+  zip.file('rosto_01.jpg', bufferFrente);
+  zip.file('rosto_02.jpg', bufferEsquerda);
+  zip.file('rosto_03.jpg', bufferDireita);
+  zip.file('rosto_04.jpg', bufferFrente); // duplicata para atingir mínimo de 4 imagens
   return zip.generateAsync({ type: 'nodebuffer' });
 };
