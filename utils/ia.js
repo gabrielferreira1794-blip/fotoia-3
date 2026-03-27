@@ -38,7 +38,7 @@ export const iniciarGeracaoPrevia = async (urlFrente, urlEsquerda, urlDireita, p
   const g = genero || 'feminino';
   const webhookUrl = `${process.env.NEXT_PUBLIC_URL}/api/webhooks/fal-treino?pedidoId=${pedidoId}&tipo=previa`;
 
-  const { request_id } = await fal.queue.submit('fal-ai/instant-id', {
+  const { request_id } = await fal.queue.submit('fal-ai/instantid', {
     input: {
       face_image_url: urlFrente,
       prompt: PROMPT_PREVIA[g],
@@ -46,8 +46,8 @@ export const iniciarGeracaoPrevia = async (urlFrente, urlEsquerda, urlDireita, p
       num_inference_steps: 30,
       guidance_scale: 5.0,
       ip_adapter_scale: 0.8,
-      controlnet_conditioning_scale: 0.8,
-      image_size: { width: 1024, height: 1024 },
+      identity_controlnet_conditioning_scale: 0.8,
+      enhance_face_region: true,
     },
     webhookUrl,
   });
