@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const { pedidoId, tipo } = req.query;
   const payload = req.body;
 
-  console.log(`[fal-webhook] tipo=${tipo || 'treino'} status=${payload.status} pedido=${pedidoId}`);
+  console.log(`[fal-webhook] v3 tipo=${tipo || 'treino'} status=${payload.status} pedido=${pedidoId}`);
 
   // Responde 200 imediatamente para o fal.ai não retentar
   res.json({ ok: true });
@@ -32,6 +32,10 @@ export default async function handler(req, res) {
   // ── PRÉVIA rápida (PuLID Flux) concluída → salva foto grátis ─────────────
   if (tipo === 'previa') {
     try {
+      console.log('[fal-webhook] previa raw payload keys:', Object.keys(payload));
+      console.log('[fal-webhook] previa output:', JSON.stringify(payload.output));
+      console.log('[fal-webhook] previa payload.payload:', JSON.stringify(payload.payload));
+
       const urlFal =
         payload.output?.images?.[0]?.url ||
         payload.output?.image?.url ||
